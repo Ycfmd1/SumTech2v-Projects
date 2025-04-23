@@ -3,7 +3,7 @@ from tkinter import messagebox, simpledialog
 import sqlite3
 from datetime import datetime
 
-# ---------------- DATABASE SETUP ---------------- #
+# DATABASE SETUP 
 conn = sqlite3.connect('bank_users.db')
 c = conn.cursor()
 
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 conn.commit()
 
-# ---------------- BANKING LOGIC ---------------- #
+# BANKING LOGIC 
 class BankingSystem:
     def __init__(self, db_cursor):
         self.cursor = db_cursor
@@ -84,7 +84,7 @@ class BankingSystem:
         return self.cursor.fetchall()
 
 
-# ---------------- GUI CLASS ---------------- #
+# GUI CLASS 
 class BankApp:
     def __init__(self, master):
         self.master = master
