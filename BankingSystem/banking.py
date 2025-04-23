@@ -207,7 +207,7 @@ class BankApp:
         tk.Button(self.master, text="Logout", command=self.main_menu).pack(pady=10)
 
 
-# ---------------- LAUNCH APP ---------------- #
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = BankApp(root)
