@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    :root {
+      --bg: #f5f5f5;
+      --text: #000;
+      --primary: #007bff;
+      --low: #27ae60;
+      --medium: #f39c12;
+      --high: #e74c3c;
+    }
+
+    .dark-mode {
+      --bg: #121212;
+      --text: #f5f5f5;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    form input, form select, form button {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+    }
+
+    ul#taskList {
+      list-style: none;
+      padding: 0;
+    }
+
+    .task {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .priority-High { color: var(--high); }
+    .priority-Medium { color: var(--medium); }
+    .priority-Low { color: var(--low); }
+
+    .completed {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    .controls button {
+      margin-left: 5px;
+      padding: 4px 6px;
+      cursor: pointer;
+      border: none;
+      border-radius: 3px;
+    }
+
+    .filters, .sort-search {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+
+    .dark-toggle {
+      float: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="dark-toggle">
+    <label><input type="checkbox" id="darkModeToggle" /> Dark Mode</label>
+  </div>
+
+  <div class="container">
+    <h1>Advanced Task Manager</h1>
+    <form id="taskForm">
+      <input type="text" id="title" placeholder="Task Title" required />
+      <input type="date" id="deadline" required />
+      <select id="priority">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+      <input type="text" id="category" placeholder="Category" />
+      <button type="submit">Add Task</button>
+    </form>
+
+    <div class="sort-search">
+      <input type="text" id="search" placeholder="Search tasks..." />
+      <select id="sortBy">
+        <option value="">Sort</option>
+        <option value="deadline">Deadline</option>
+        <option value="priority">Priority</option>
+      </select>
+    </div>
+
+    <div class="filters">
+      <select id="filterPriority">
+        <option value="">All Priorities</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <label><input type="checkbox" id="showCompleted" /> Show Completed</label>
+    </div>
+
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    const form = document.getElementById("taskForm");
+    const taskList = document.getElementById("taskList");
+    const filterPriority = document.getElementById("filterPriority");
+    const search = document.getElementById("search");
+    const sortBy = document.getElementById("sortBy");
+    const showCompleted = document.getElementById("showCompleted");
+    const darkModeToggle = document.getElementById("darkModeToggle");
+
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      const filter = filterPriority.value;
+      const keyword = search.value.toLowerCase();
+      const showDone = showCompleted.checked;
+
+      let filtered = tasks.filter(task => {
+        return (filter === "" || task.priority === filter) &&
+               (showDone || !task.completed) &&
+               (task.title.toLowerCase().includes(keyword) || task.category.toLowerCase().includes(keyword));
+      });
+
+      if (sortBy.value === "deadline") {
+        filtered.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+      } else if (sortBy.value === "priority") {
+        const order = { High: 1, Medium: 2, Low: 3 };
+        filtered.sort((a, b) => order[a.priority] - order[b.priority]);
+      }
+
+      taskList.innerHTML = "";
+      filtered.forEach((task, index) => {
+        const li = document.createElement("li");
+        li.className = `task priority-${task.priority} ${task.completed ? "completed" : ""}`;
+        li.innerHTML = `
+          <div>
+            <input type="checkbox" ${task.completed ? "checked" : ""} onchange="toggleComplete(${index})" />
+            <strong>${task.title}</strong> - ${task.deadline} [${task.priority}] <em>${task.category}</em>
+          </div>
+          <div class="controls">
+            <button onclick="editTask(${index})"></button>
+            <button onclick="deleteTask(${index})"></button>
+          </div>
+        `;
+        taskList.appendChild(li);
+      });
+    }
+
+    function toggleComplete(index) {
+      tasks[index].completed = !tasks[index].completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    function deleteTask(index) {
+      if (confirm("Delete this task?")) {
+        tasks.splice(index, 1);
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function editTask(index) {
+      const task = tasks[index];
+      document.getElementById("title").value = task.title;
+      document.getElementById("deadline").value = task.deadline;
+      document.getElementById("priority").value = task.priority;
+      document.getElementById("category").value = task.category;
+      deleteTask(index);
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const task = {
+        title: form.title.value,
+        deadline: form.deadline.value,
+        priority: form.priority.value,
+        category: form.category.value,
+        completed: false,
+      };
+      tasks.push(task);
+      saveTasks();
+      form.reset();
+      renderTasks();
+    });
+
+    [filterPriority, search, sortBy, showCompleted].forEach(el =>
+      el.addEventListener("input", renderTasks)
+    );
+
+    darkModeToggle.addEventListener("change", () => {
+      document.body.classList.toggle("dark-mode", darkModeToggle.checked);
+    });
+
+    renderTasks();
+  </script>
+</body>
+</html>
